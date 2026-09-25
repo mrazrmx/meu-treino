@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano Integrado & Acompanhamento de Cargas — Guilherme Abreu Faustino</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg-main: #f0f4f8;
+    --bg-card: #ffffff;
+    --text-main: #1C1C1C;
+    --text-muted: #666666;
+    --border-color: #eeeeee;
+    --input-bg: #ffffff;
+    --input-border: #cccccc;
+    --table-stripe: #f9f9f9;
+  }
+
+  body.dark-mode {
+    --bg-main: #121212;
+    --bg-card: #1e1e1e;
+    --text-main: #e0e0e0;
+    --text-muted: #aaa;
+    --border-color: #333333;
+    --input-bg: #2a2a2a;
+    --input-border: #444444;
+    --table-stripe: #252525;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: var(--text-main); background: var(--bg-main); line-height: 1.5; transition: background 0.3s, color 0.3s; }
+
+  .theme-toggle-btn {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 1000;
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  body.dark-mode .theme-toggle-btn { background: #f0f4f8; color: #111; }
+
+  .cover {
+    background: linear-gradient(135deg, #1565C0, #0D47A1);
+    color: white;
+    padding: 36px 20px;
+    text-align: center;
+  }
+  .cover h1 { font-size: 24px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .cover p { font-size: 14px; opacity: 0.9; margin-bottom: 4px; }
+  .cover .sub { font-size: 12px; opacity: 0.8; margin-top: 6px; }
+
+  .week-bar { 
+    display: flex; 
+    overflow-x: auto; 
+    gap: 6px; 
+    padding: 12px 8px; 
+    background: var(--bg-card); 
+    position: sticky; 
+    top: 0; 
+    z-index: 100; 
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); 
+  }
+  .week-chip { 
+    flex: 1; 
+    min-width: 85px; 
+    border-radius: 8px; 
+    padding: 10px 4px; 
+    text-align: center; 
+    text-decoration: none; 
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .week-chip:active { transform: scale(0.95); }
+  .week-chip .day { font-weight: 800; font-size: 12px; color: white; }
+  .week-chip .muscle { font-size: 10px; color: rgba(255,255,255,0.9); margin-top: 2px; }
+
+  .container { max-width: 850px; margin: 0 auto; padding: 0 10px 40px 10px; }
+
+  .section { background: var(--bg-card); margin: 18px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .section-header { padding: 14px 18px; }
+  .section-header h2 { font-size: 16px; font-weight: 800; color: white; }
+  .section-header p { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+  .section-body { padding: 16px; overflow-x: auto; }
+
+  .bg-blue { background: #1565C0; }
+  .bg-green { background: #1A7A3C; }
+  .bg-purple { background: #6A1B9A; }
+  .bg-orange { background: #E65100; }
+  .bg-red { background: #B71C1C; }
+  .bg-teal { background: #00695C; }
+  .bg-dark { background: #2C2C2C; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { padding: 8px; text-align: center; color: white; font-weight: 700; font-size: 12px; }
+  td { padding: 8px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+  .td-left { text-align: left; font-weight: 600; }
+
+  .total-row td { background: #E8F5E9 !important; font-weight: 700; color: #1A7A3C; text-align: center; }
+  body.dark-mode .total-row td { background: #1b3a24 !important; color: #81c784; }
+  .total-row td:first-child { text-align: left; }
+
+  .highlight-box { background: #E8F5E9; border-left: 4px solid #1A7A3C; padding: 12px 16px; border-radius: 8px; margin: 12px 0; }
+  .highlight-box p { font-size: 13px; color: #1C1C1C; line-height: 1.5; }
+  body.dark-mode .highlight-box { background: #1b3a24; border-left-color: #66bb6a; }
+  body.dark-mode .highlight-box p { color: #e0e0e0; }
+
+  .info-box { background: #E3F2FD; border-left: 4px solid #1565C0; padding: 12px 16px; border-radius: 8px; margin: 12px 0; }
+  .info-box p { font-size: 13px; color: #1C1C1C; line-height: 1.5; }
+  body.dark-mode .info-box { background: #0d3c61; border-left-color: #42a5f5; }
+  body.dark-mode .info-box p { color: #e0e0e0; }
+
+  select.ex-select, select.cardio-select, select.chart-select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: var(--input-bg);
+    color: var(--text-main);
+  }
+  input[type="number"], input[type="text"], input[type="date"] {
+    padding: 6px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    font-size: 13px;
+    background-color: var(--input-bg);
+    color: var(--text-main);
+  }
+  input[type="number"] { width: 60px; text-align: center; font-weight: 600; }
+  input[type="text"] { width: 100%; }
+  input[type="date"] { font-weight: 600; cursor: pointer; }
+
+  .btn-actions-group { display: flex; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+  .btn-save {
+    flex: 2;
+    padding: 10px;
+    background: #1565C0;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-add-row {
+    flex: 1;
+    padding: 10px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .date-picker-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--input-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--input-border);
+  }
+  .date-picker-box label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+
+  .btn-del-row {
+    background: #FFEBEE;
+    color: #C62828;
+    border: 1px solid #FFCDD2;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  body.dark-mode .btn-del-row { background: #421010; color: #ef9a9a; border-color: #621919; }
+
+  .schedule-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); align-items: flex-start; }
+  .schedule-item:last-child { border-bottom: none; }
+  .schedule-time { font-weight: 700; color: #1565C0; min-width: 80px; font-size: 13px; }
+  body.dark-mode .schedule-time { color: #64b5f6; }
+  .schedule-desc { font-size: 13px; color: var(--text-main); }
+  .schedule-tag { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+  .chart-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+  
+  .btn-danger { background: #D32F2F; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .btn-secondary { background: #555; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .btn-add { background: #1A7A3C; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+
+  .add-box { display: flex; gap: 8px; margin-top: 8px; }
+  .footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; }
+
+  .cardio-history-table { margin-top: 15px; }
+  .cardio-history-table th { background: #444; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle-btn" onclick="toggleTheme()">🌓 Alternar Tema</button>
+
+<div class="cover">
+  <h1>🏋️‍♂️ PLANO INTEGRADO & EVOLUÇÃO DE CARGAS</h1>
+  <p>Atleta: Guilherme Abreu Faustino • Fichas A-F • Acompanhamento Nutricional</p>
+  <p class="sub">Meta: 90 kg | Protocolo: Retatrutida 2.5mg (Segundas-feiras) | Déficit Acentuado</p>
+</div>
+
+<!-- BARRA DE NAVEGAÇÃO RÁPIDA -->
+<div class="week-bar">
+  <a href="#sec-nutricao" class="week-chip" style="background:#1A7A3C"><div class="day">DIETA</div><div class="muscle">Alimentação</div></a>
+  <a href="#sec-historico" class="week-chip" style="background:#0D47A1"><div class="day">HISTÓRICO</div><div class="muscle">Por Data</div></a>
+  <a href="#sec-treino-a" class="week-chip" style="background:#1565C0"><div class="day">SEG (A)</div><div class="muscle">Peito</div></a>
+  <a href="#sec-treino-b" class="week-chip" style="background:#1A7A3C"><div class="day">TER (B)</div><div class="muscle">Dorsal</div></a>
+  <a href="#sec-treino-c" class="week-chip" style="background:#6A1B9A"><div class="day">QUA (C)</div><div class="muscle">Quadríceps</div></a>
+  <a href="#sec-treino-d" class="week-chip" style="background:#E65100"><div class="day">QUI (D)</div><div class="muscle">Deltóide</div></a>
+  <a href="#sec-treino-e" class="week-chip" style="background:#B71C1C"><div class="day">SEX (E)</div><div class="muscle">Braços</div></a>
+  <a href="#sec-treino-f" class="week-chip" style="background:#00695C"><div class="day">SÁB (F)</div><div class="muscle">Glúteo/Post.</div></a>
+  <a href="#sec-cardio" class="week-chip" style="background:#2C2C2C"><div class="day">CARDIO</div><div class="muscle">Aeróbico</div></a>
+</div>
+
+<div class="container">
+
+  <!-- ROTINA INTEGRADA DIÁRIA -->
+  <div class="section">
+    <div class="section-header bg-dark">
+      <h2>⏰ ROTINA DIÁRIA INTEGRADA</h2>
+    </div>
+    <div class="section-body">
+      <div class="schedule-item">
+        <div class="schedule-time">04:50</div>
+        <div>
+          <div class="schedule-desc">Pré-Treino / Acorda</div>
+          <div class="schedule-tag">💧 Hidratação / Café Preto sem açúcar</div>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <div class="schedule-time">05:00–06:20</div>
+        <div>
+          <div class="schedule-desc">Treino de Musculação + Cardio</div>
+          <div class="schedule-tag">💪 Musculação com foco em carga progressiva + Cardio pós-treino (quando possível)</div>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <div class="schedule-time">06:30</div>
+        <div>
+          <div class="schedule-desc">Refeição 1: Café da Manhã (Pós-Treino)</div>
+          <div class="schedule-tag">🍳 Pão Francês ou Banana c/ Aveia, Ovos, Proteína Bovina + Creatina 8g + Multivitamínico</div>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <div class="schedule-time">12:00</div>
+        <div>
+          <div class="schedule-desc">Refeição 2: Almoço</div>
+          <div class="schedule-tag">🍱 Arroz (120g), Feijão (80g) e Proteína Magra (220g)</div>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <div class="schedule-time">19:00</div>
+        <div>
+          <div class="schedule-desc">Refeição 3: Jantar</div>
+          <div class="schedule-tag">🌙 Arroz (80g), Feijão (60g) e Proteína Magra (200g)</div>
+        </div>
+      </div>
+      <div class="schedule-item">
+        <div class="schedule-time">Dormir</div>
+        <div>
+          <div class="schedule-desc">Suplementação Noturna (Opcional)</div>
+          <div class="schedule-tag">💊 Magnésio + Inositol (quando lembrar)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANO NUTRICIONAL -->
+  <div class="section" id="sec-nutricao">
+    <div class="section-header bg-green">
+      <h2>🥗 PLANO ALIMENTAR & SUPLEMENTAÇÃO (~1.850 kcal)</h2>
+      <p>Estruturado para Retatrutida (Aplicações nas Segundas) | Foco em Alta Proteína</p>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead>
+          <tr>
+            <th style="background:#1A7A3C; text-align:left">Refeição / Alimento</th>
+            <th style="background:#1A7A3C">Qtd / Dose</th>
+            <th style="background:#1A7A3C">Kcal</th>
+            <th style="background:#1A7A3C">Prot</th>
+            <th style="background:#1A7A3C">Carb</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="td-left" colspan="5" style="background:#f0f7f2; color:#1A7A3C; font-weight:700">06:30h — Refeição 1: Pós-Treino / Café da Manhã</td></tr>
+          <tr><td class="td-left">Pão Francês (ou 1-2 Bananas-maçã c/ aveia)</td><td>1 unid. (50g)</td><td>135</td><td>4g</td><td>28g</td></tr>
+          <tr><td class="td-left">Ovos inteiros (mexidos)</td><td>4 a 5 unid.</td><td>350</td><td>28g</td><td>2g</td></tr>
+          <tr><td class="td-left">Proteína Bovina (Sabor Blueberry)</td><td>35g (2 scoops)</td><td>130</td><td>30g</td><td>1g</td></tr>
+          <tr><td class="td-left">Creatina 8g + Multivitamínico (1 tab)</td><td>Dose diária</td><td>0</td><td>0g</td><td>0g</td></tr>
+          
+          <tr><td class="td-left" colspan="5" style="background:#f0f7f2; color:#1A7A3C; font-weight:700">12:00h — Refeição 2: Almoço</td></tr>
+          <tr><td class="td-left">Arroz Branco ou Integral</td><td>120g</td><td>155</td><td>3g</td><td>34g</td></tr>
+          <tr><td class="td-left">Feijão Cozido</td><td>80g</td><td>60</td><td>4g</td><td>10g</td></tr>
+          <tr><td class="td-left">Frango Grelhado ou Carne Magra</td><td>220g</td><td>360</td><td>68g</td><td>0g</td></tr>
+
+          <tr><td class="td-left" colspan="5" style="background:#f0f7f2; color:#1A7A3C; font-weight:700">19:00h — Refeição 3: Jantar</td></tr>
+          <tr><td class="td-left">Arroz Branco ou Integral</td><td>80g</td><td>104</td><td>2g</td><td>23g</td></tr>
+          <tr><td class="td-left">Feijão Cozido</td><td>60g</td><td>45</td><td>3g</td><td>8g</td></tr>
+          <tr><td class="td-left">Frango Grelhado ou Carne Magra</td><td>200g</td><td>320</td><td>60g</td><td>0g</td></tr>
+
+          <tr class="total-row">
+            <td>TOTAL ESTIMADO MENSAL</td>
+            <td>—</td>
+            <td>~1.854 kcal</td>
+            <td>~202g</td>
+            <td>~106g</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <p>🥤 <strong>Proteína Bovino Blueberry:</strong> Tome logo após o treino misturada em água bem gelada junto com os 8g de Creatina. O multivitamínico deve ser consumido junto com a refeição sólida para melhor absorção.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSULTA DE HISTÓRICO POR DATA -->
+  <div class="section" id="sec-historico">
+    <div class="section-header bg-dark" style="background:#0D47A1;">
+      <h2>🔍 CONSULTA DE TREINOS POR DATA</h2>
+      <p>Selecione um dia no calendário para consultar as cargas e cardios salvos</p>
+    </div>
+    <div class="section-body">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px; flex-wrap:wrap;">
+        <label style="font-weight:700;">📅 Selecione o Dia:</label>
+        <input type="date" id="historySearchDate" onchange="searchHistoryByDate()">
+      </div>
+
+      <div id="historyResults">
+        <!-- Preenchido via JS ao selecionar uma data -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CADASTRO DE NOVOS EXERCÍCIOS -->
+  <div class="section">
+    <div class="section-header bg-dark">
+      <h2>➕ CADASTRAR NOVO EXERCÍCIO / VARIAÇÃO</h2>
+    </div>
+    <div class="section-body">
+      <label style="font-weight:700; font-size:12px;">Nome do Novo Exercício / Variação:</label>
+      <div class="add-box">
+        <input type="text" id="newExerciseName" placeholder="Ex: Agachamento Hack, Crossover Alto...">
+        <button type="button" class="btn-add" onclick="addNewExercise()">Cadastrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL DE ANÁLISE GRÁFICA -->
+  <div class="section">
+    <div class="section-header bg-dark">
+      <h2>📈 GRÁFICO DE EVOLUÇÃO DE CARGAS</h2>
+      <p>Acompanhe sua progressão de força ao longo do tempo</p>
+    </div>
+    <div class="section-body">
+      <div class="chart-controls">
+        <select id="exerciseSelect" class="chart-select" onchange="updateChart()">
+          <!-- Preenchido via JS -->
+        </select>
+        <button onclick="exportData()" class="btn-secondary">📥 Backup</button>
+        <button onclick="document.getElementById('importFileInput').click()" class="btn-secondary" style="background:#0D47A1;">📤 Restaurar Backup</button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importData(event)">
+        <button onclick="clearData()" class="btn-danger">🗑️ Limpar Histórico</button>
+      </div>
+      <div style="position: relative; height:300px; width:100%">
+        <canvas id="evolutionChart"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <!-- MÓDULO CARDIO -->
+  <div class="section" id="sec-cardio">
+    <div class="section-header bg-dark">
+      <h2>🏃 REGISTRO DE CARDIO / AERÓBICO</h2>
+      <p>Realizado após o treino quando possível</p>
+    </div>
+    <div class="section-body">
+      <form id="cardio-form">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#2C2C2C; text-align:left; width:30%;">Tipo</th>
+              <th style="background:#2C2C2C; width:20%;">Tempo (min)</th>
+              <th style="background:#2C2C2C; text-align:left;">Observações</th>
+              <th style="background:#2C2C2C; width:10%;">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="cardio-tbody">
+            <!-- Gerado via JS -->
+          </tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addCardioRow()">➕ Add Cardio</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#2C2C2C" onclick="saveCardio()">💾 Salvar Cardio</button>
+        </div>
+      </form>
+
+      <!-- HISTÓRICO DE CARDIOS -->
+      <h3 style="margin-top: 25px; font-size: 14px;">📜 Histórico de Cardios Registrados</h3>
+      <table class="cardio-history-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Duração</th>
+            <th>Notas</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="cardio-history-tbody">
+          <!-- Preenchido via JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TREINO A: SEGUNDA (PEITO) -->
+  <div class="section" id="sec-treino-a">
+    <div class="section-header bg-blue">
+      <h2>📅 SEGUNDA — TREINO A: Peito</h2>
+    </div>
+    <div class="section-body">
+      <form class="workout-form" data-day="Treino A">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#1565C0; text-align:left; width:35%;">Exercício</th>
+              <th style="background:#1565C0">Séries</th>
+              <th style="background:#1565C0">Meta Reps</th>
+              <th style="background:#1565C0">Carga (kg)</th>
+              <th style="background:#1565C0">Reps Feitas</th>
+              <th style="background:#1565C0">Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addRow(this, 'Treino A')">➕ Add Exercício</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#1565C0" onclick="saveWorkout(this)">💾 Salvar Cargas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TREINO B: TERÇA (DORSAL) -->
+  <div class="section" id="sec-treino-b">
+    <div class="section-header bg-green">
+      <h2>📅 TERÇA — TREINO B: Dorsal / Costas</h2>
+    </div>
+    <div class="section-body">
+      <form class="workout-form" data-day="Treino B">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#1A7A3C; text-align:left; width:35%;">Exercício</th>
+              <th style="background:#1A7A3C">Séries</th>
+              <th style="background:#1A7A3C">Meta Reps</th>
+              <th style="background:#1A7A3C">Carga (kg)</th>
+              <th style="background:#1A7A3C">Reps Feitas</th>
+              <th style="background:#1A7A3C">Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addRow(this, 'Treino B')">➕ Add Exercício</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#1A7A3C" onclick="saveWorkout(this)">💾 Salvar Cargas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TREINO C: QUARTA (QUADRÍCEPS) -->
+  <div class="section" id="sec-treino-c">
+    <div class="section-header bg-purple">
+      <h2>📅 QUARTA — TREINO C: Quadríceps</h2>
+    </div>
+    <div class="section-body">
+      <form class="workout-form" data-day="Treino C">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#6A1B9A; text-align:left; width:35%;">Exercício</th>
+              <th style="background:#6A1B9A">Séries</th>
+              <th style="background:#6A1B9A">Meta Reps</th>
+              <th style="background:#6A1B9A">Carga (kg)</th>
+              <th style="background:#6A1B9A">Reps Feitas</th>
+              <th style="background:#6A1B9A">Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addRow(this, 'Treino C')">➕ Add Exercício</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#6A1B9A" onclick="saveWorkout(this)">💾 Salvar Cargas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TREINO D: QUINTA (DELTÓIDE) -->
+  <div class="section" id="sec-treino-d">
+    <div class="section-header bg-orange">
+      <h2>📅 QUINTA — TREINO D: Deltóide / Ombros</h2>
+    </div>
+    <div class="section-body">
+      <form class="workout-form" data-day="Treino D">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#E65100; text-align:left; width:35%;">Exercício</th>
+              <th style="background:#E65100">Séries</th>
+              <th style="background:#E65100">Meta Reps</th>
+              <th style="background:#E65100">Carga (kg)</th>
+              <th style="background:#E65100">Reps Feitas</th>
+              <th style="background:#E65100">Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addRow(this, 'Treino D')">➕ Add Exercício</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#E65100" onclick="saveWorkout(this)">💾 Salvar Cargas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TREINO E: SEXTA (BRAÇOS) -->
+  <div class="section" id="sec-treino-e">
+    <div class="section-header bg-red">
+      <h2>📅 SEXTA — TREINO E: Braços (Bíceps & Tríceps)</h2>
+    </div>
+    <div class="section-body">
+      <form class="workout-form" data-day="Treino E">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#B71C1C; text-align:left; width:35%;">Exercício</th>
+              <th style="background:#B71C1C">Séries</th>
+              <th style="background:#B71C1C">Meta Reps</th>
+              <th style="background:#B71C1C">Carga (kg)</th>
+              <th style="background:#B71C1C">Reps Feitas</th>
+              <th style="background:#B71C1C">Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addRow(this, 'Treino E')">➕ Add Exercício</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#B71C1C" onclick="saveWorkout(this)">💾 Salvar Cargas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TREINO F: SÁBADO (GLÚTEO & POSTERIOR) -->
+  <div class="section" id="sec-treino-f">
+    <div class="section-header bg-teal">
+      <h2>📅 SÁBADO — TREINO F: Glúteo & Posterior de Coxa</h2>
+    </div>
+    <div class="section-body">
+      <form class="workout-form" data-day="Treino F">
+        <table>
+          <thead>
+            <tr>
+              <th style="background:#00695C; text-align:left; width:35%;">Exercício</th>
+              <th style="background:#00695C">Séries</th>
+              <th style="background:#00695C">Meta Reps</th>
+              <th style="background:#00695C">Carga (kg)</th>
+              <th style="background:#00695C">Reps Feitas</th>
+              <th style="background:#00695C">Ação</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-actions-group">
+          <button type="button" class="btn-add-row" onclick="addRow(this, 'Treino F')">➕ Add Exercício</button>
+          <div class="date-picker-box">
+            <label>📅 Data:</label>
+            <input type="date" class="workout-date-input">
+          </div>
+          <button type="button" class="btn-save" style="background:#00695C" onclick="saveWorkout(this)">💾 Salvar Cargas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p style="font-weight:700; color:#1565C0; font-size:14px;">Plano Atualizado — Guilherme Abreu Faustino</p>
+    <p>Dados armazenados localmente no seu dispositivo.</p>
+  </div>
+
+</div>
+
+<script>
+  let chartInstance = null;
+
+  const initialWorkouts = {
+    "Treino A": [
+      { name: "Supino Reto com Barra/Halteres", sets: 4, target: "8–10" },
+      { name: "Supino Inclinado com Halteres", sets: 4, target: "10–12" },
+      { name: "Crossover Polia", sets: 3, target: "12–15" },
+      { name: "Peck Deck / Voador", sets: 3, target: "12" }
+    ],
+    "Treino B": [
+      { name: "Puxada Alta Neutra/Aberta", sets: 4, target: "8–10" },
+      { name: "Remada Curvada com Barra", sets: 4, target: "10" },
+      { name: "Remada Baixa Triangulo", sets: 3, target: "10–12" },
+      { name: "Pulldown na Corda", sets: 3, target: "12–15" },
+      { name: "Encolhimento com Halteres", sets: 4, target: "12–15" }
+    ],
+    "Treino C": [
+      { name: "Agachamento Libre / Hack Machine", sets: 4, target: "8–10" },
+      { name: "Leg Press 45", sets: 4, target: "10–12" },
+      { name: "Cadeira Extensora", sets: 3, target: "12–15" },
+      { name: "Passada com Halteres", sets: 3, target: "10 passo/perna" },
+      { name: "Panturrilha Sentado", sets: 4, target: "15–20" }
+    ],
+    "Treino D": [
+      { name: "Desenvolvimento com Halteres", sets: 4, target: "8–10" },
+      { name: "Elevacao Lateral na Polia/Halter", sets: 4, target: "12–15" },
+      { name: "Elevacao Frontal com Anilha/Halter", sets: 3, target: "12" },
+      { name: "Crucifixo Inverso Voador", sets: 4, target: "12–15" }
+    ],
+    "Treino E": [
+      { name: "Rosca Direta Barra W", sets: 3, target: "10–12" },
+      { name: "Rosca Martelo Halteres", sets: 3, target: "10–12" },
+      { name: "Tricep Testa Barra W", sets: 3, target: "10–12" },
+      { name: "Tricep Corda na Polia", sets: 3, target: "12–15" },
+      { name: "Rosca Scott na Maquina", sets: 3, target: "12" },
+      { name: "Tricep Frances / Coice", sets: 3, target: "12" }
+    ],
+    "Treino F": [
+      { name: "Stiff com Barra/Halteres", sets: 4, target: "8–10" },
+      { name: "Mesa Flexora", sets: 4, target: "10–12" },
+      { name: "Cadeira Flexora", sets: 3, target: "12–15" },
+      { name: "Hip Thrust / Elevacao Pelvica", sets: 4, target: "10–12" },
+      { name: "Panturrilha em Pe", sets: 4, target: "15" }
+    ]
+  };
+
+  const defaultExercises = [
+    "Agachamento Libre / Hack Machine", "Leg Press 45", "Cadeira Extensora", "Passada com Halteres", "Panturrilha Sentado",
+    "Supino Reto com Barra/Halteres", "Supino Inclinado com Halteres", "Crossover Polia", "Peck Deck / Voador",
+    "Puxada Alta Neutra/Aberta", "Remada Curvada com Barra", "Remada Baixa Triangulo", "Pulldown na Corda", "Encolhimento com Halteres",
+    "Desenvolvimento com Halteres", "Elevacao Lateral na Polia/Halter", "Elevacao Frontal com Anilha/Halter", "Crucifixo Inverso Voador",
+    "Rosca Direta Barra W", "Rosca Martelo Halteres", "Tricep Testa Barra W", "Tricep Corda na Polia", "Rosca Scott na Maquina", "Tricep Frances / Coice",
+    "Stiff com Barra/Halteres", "Mesa Flexora", "Cadeira Flexora", "Hip Thrust / Elevacao Pelvica", "Panturrilha em Pe"
+  ];
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }
+
+  function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+  }
+
+  function getCustomExercises() {
+    const custom = JSON.parse(localStorage.getItem("customExercises") || "[]");
+    return Array.from(new Set([...defaultExercises, ...custom]));
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadTheme();
+    setDefaultDates();
+    buildTables();
+    addCardioRow();
+    renderCardioHistory();
+    refreshChartDropdown();
+    initChart();
+    searchHistoryByDate();
+  });
+
+  function setDefaultDates() {
+    const todayISO = new Date().toISOString().split('T')[0];
+    document.querySelectorAll('.workout-date-input').forEach(input => {
+      input.value = todayISO;
+    });
+    const historyDateInput = document.getElementById('historySearchDate');
+    if (historyDateInput) historyDateInput.value = todayISO;
+  }
+
+  function formatDateBR(isoDateStr) {
+    if(!isoDateStr) return new Date().toLocaleDateString('pt-BR');
+    const [year, month, day] = isoDateStr.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
+  function searchHistoryByDate() {
+    const selectedIso = document.getElementById("historySearchDate").value;
+    const dateFormatted = formatDateBR(selectedIso);
+    const resultsContainer = document.getElementById("historyResults");
+
+    const history = JSON.parse(localStorage.getItem("workoutHistory") || "[]");
+    const cardioHistory = JSON.parse(localStorage.getItem("cardioHistory") || "[]");
+
+    const workoutMatches = history.filter(h => h.rawDate === selectedIso || h.date === dateFormatted);
+    const cardioMatches = cardioHistory.filter(c => c.rawDate === selectedIso || c.date === dateFormatted);
+
+    if (workoutMatches.length === 0 && cardioMatches.length === 0) {
+      resultsContainer.innerHTML = `<p style="color:#888; text-align:center; padding:15px;">Nenhum registro encontrado para a data <strong>${dateFormatted}</strong>.</p>`;
+      return;
+    }
+
+    let html = ``;
+
+    if (workoutMatches.length > 0) {
+      html += `<h4 style="margin:10px 0 5px 0; color:#1565C0;">🏋️‍♂️ Musculação</h4>`;
+      html += `<table>
+        <thead>
+          <tr>
+            <th style="background:#1565C0; text-align:left;">Exercício</th>
+            <th style="background:#1565C0;">Séries</th>
+            <th style="background:#1565C0;">Carga (kg)</th>
+            <th style="background:#1565C0;">Reps</th>
+            <th style="background:#1565C0; width:10%;">Ação</th>
+          </tr>
+        </thead>
+        <tbody>`;
+      workoutMatches.forEach(item => {
+        html += `<tr>
+          <td class="td-left">${item.exercise}</td>
+          <td>${item.sets || '-'}</td>
+          <td><strong>${item.weight} kg</strong></td>
+          <td>${item.reps || '-'}</td>
+          <td><button type="button" class="btn-del-row" onclick="deleteWorkoutItem('${item.rawDate || selectedIso}', '${item.exercise.replace(/'/g, "\\'")}')">🗑️</button></td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+
+    if (cardioMatches.length > 0) {
+      html += `<h4 style="margin:15px 0 5px 0; color:#1A7A3C;">🏃 Cardio / Aeróbico</h4>`;
+      html += `<table>
+        <thead>
+          <tr>
+            <th style="background:#1A7A3C; text-align:left;">Tipo</th>
+            <th style="background:#1A7A3C;">Duração</th>
+            <th style="background:#1A7A3C; text-align:left;">Observações</th>
+          </tr>
+        </thead>
+        <tbody>`;
+      cardioMatches.forEach(item => {
+        html += `<tr>
+          <td class="td-left">${item.type}</td>
+          <td><strong>${item.durationMin} min</strong></td>
+          <td style="text-align:left;">${item.notes || '-'}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+
+    resultsContainer.innerHTML = html;
+  }
+
+  function deleteWorkoutItem(rawDate, exerciseName) {
+    let history = JSON.parse(localStorage.getItem("workoutHistory") || "[]");
+    
+    history = history.filter(h => !( (h.rawDate === rawDate || h.date === formatDateBR(rawDate)) && h.exercise === exerciseName ));
+    
+    localStorage.setItem("workoutHistory", JSON.stringify(history));
+    updateChart();
+    searchHistoryByDate();
+  }
+
+  function buildTables() {
+    const allExercises = getCustomExercises();
+    
+    document.querySelectorAll(".workout-form").forEach(form => {
+      const day = form.dataset.day;
+      const tbody = form.querySelector("tbody");
+      tbody.innerHTML = "";
+      
+      const dayList = initialWorkouts[day] || [];
+      dayList.forEach(item => {
+        appendRow(tbody, item.name, item.sets, item.target, allExercises);
+      });
+    });
+  }
+
+  function appendRow(tbody, selectedName = "", sets = 3, target = "10–12", exerciseList = null) {
+    if (!exerciseList) exerciseList = getCustomExercises();
+    
+    const tr = document.createElement("tr");
+    
+    let optionsHtml = "";
+    exerciseList.forEach(ex => {
+      const isSel = ex === selectedName ? "selected" : "";
+      optionsHtml += `<option value="${ex}" ${isSel}>${ex}</option>`;
+    });
+
+    tr.innerHTML = `
+      <td><select class="ex-select">${optionsHtml}</select></td>
+      <td><input type="number" class="s-input" value="${sets}"></td>
+      <td>${target}</td>
+      <td><input type="number" class="w-input" step="0.5"></td>
+      <td><input type="number" class="r-input"></td>
+      <td><button type="button" class="btn-del-row" onclick="removeRow(this)">🗑️</button></td>
+    `;
+    
+    tbody.appendChild(tr);
+  }
+
+  function addRow(btn, day) {
+    const form = btn.closest('form');
+    const tbody = form.querySelector('tbody');
+    appendRow(tbody, "", 3, "10–12");
+  }
+
+  function removeRow(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+  }
+
+  function addCardioRow() {
+    const tbody = document.getElementById("cardio-tbody");
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>
+        <select class="cardio-select">
+          <option value="Esteira">Esteira</option>
+          <option value="Escada">Escada</option>
+          <option value="Bicicleta">Bicicleta</option>
+          <option value="Elíptico">Elíptico</option>
+          <option value="Corrida de Rua">Corrida de Rua</option>
+        </select>
+      </td>
+      <td><input type="number" class="cardio-time" placeholder="Min" style="width:70px;"></td>
+      <td><input type="text" class="cardio-obs" placeholder="Ex: 20 min caminhada pós-treino..."></td>
+      <td><button type="button" class="btn-del-row" onclick="removeRow(this)">🗑️</button></td>
+    `;
+
+    tbody.appendChild(tr);
+  }
+
+  function saveCardio() {
+    const form = document.getElementById("cardio-form");
+    const dateInput = form.querySelector('.workout-date-input').value;
+    const dateFormatted = formatDateBR(dateInput);
+    const dateRaw = dateInput || new Date().toISOString().split('T')[0];
+
+    const rows = document.querySelectorAll('#cardio-tbody tr');
+    let cardioHistory = JSON.parse(localStorage.getItem("cardioHistory") || "[]");
+    let savedCount = 0;
+
+    rows.forEach(row => {
+      const type = row.querySelector('.cardio-select').value;
+      const time = row.querySelector('.cardio-time').value;
+      const obs = row.querySelector('.cardio-obs').value;
+
+      if (time !== "") {
+        cardioHistory.push({
+          date: dateFormatted,
+          rawDate: dateRaw,
+          type: type,
+          durationMin: time,
+          notes: obs
+        });
+        savedCount++;
+      }
+    });
+
+    if (savedCount > 0) {
+      localStorage.setItem("cardioHistory", JSON.stringify(cardioHistory));
+      alert(`✅ Cardio salvo para ${dateFormatted}!`);
+      renderCardioHistory();
+      searchHistoryByDate();
+    } else {
+      alert("⚠️ Digite o tempo antes de salvar.");
+    }
+  }
+
+  function renderCardioHistory() {
+    const tbody = document.getElementById("cardio-history-tbody");
+    tbody.innerHTML = "";
+    const cardioHistory = JSON.parse(localStorage.getItem("cardioHistory") || "[]");
+
+    if (cardioHistory.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Nenhum cardio registrado até o momento.</td></tr>`;
+      return;
+    }
+
+    cardioHistory.sort((a, b) => (b.rawDate || "").localeCompare(a.rawDate || ""));
+
+    cardioHistory.forEach((item, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.date}</td>
+        <td><strong>${item.type}</strong></td>
+        <td>${item.durationMin} min</td>
+        <td>${item.notes || "-"}</td>
+        <td><button type="button" class="btn-del-row" onclick="deleteCardioItem(${index})">🗑️</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function deleteCardioItem(index) {
+    let cardioHistory = JSON.parse(localStorage.getItem("cardioHistory") || "[]");
+    cardioHistory.sort((a, b) => (b.rawDate || "").localeCompare(a.rawDate || ""));
+    cardioHistory.splice(index, 1);
+    localStorage.setItem("cardioHistory", JSON.stringify(cardioHistory));
+    renderCardioHistory();
+    searchHistoryByDate();
+  }
+
+  function refreshChartDropdown() {
+    const allExercises = getCustomExercises();
+    const chartSelect = document.getElementById("exerciseSelect");
+    const currentVal = chartSelect.value;
+    
+    chartSelect.innerHTML = "";
+    allExercises.forEach(ex => {
+      const opt = document.createElement("option");
+      opt.value = ex;
+      opt.textContent = ex;
+      chartSelect.appendChild(opt);
+    });
+
+    if (currentVal && allExercises.includes(currentVal)) {
+      chartSelect.value = currentVal;
+    }
+  }
+
+  function addNewExercise() {
+    const input = document.getElementById("newExerciseName");
+    const name = input.value.trim();
+
+    if (!name) {
+      alert("⚠️ Digite o nome do exercício.");
+      return;
+    }
+
+    let custom = JSON.parse(localStorage.getItem("customExercises") || "[]");
+    if (!custom.includes(name) && !defaultExercises.includes(name)) {
+      custom.push(name);
+      localStorage.setItem("customExercises", JSON.stringify(custom));
+      alert(`✅ Exercício "${name}" adicionado!`);
+      input.value = "";
+      
+      document.querySelectorAll(".ex-select").forEach(select => {
+        const currentVal = select.value;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+        select.value = currentVal;
+      });
+
+      refreshChartDropdown();
+    } else {
+      alert("⚠️ Este exercício já existe.");
+    }
+  }
+
+  function saveWorkout(btn) {
+    const form = btn.closest('form');
+    const dateInput = form.querySelector('.workout-date-input').value;
+    const dateFormatted = formatDateBR(dateInput);
+    const dateRaw = dateInput || new Date().toISOString().split('T')[0];
+
+    const rows = form.querySelectorAll('tbody tr');
+    let history = JSON.parse(localStorage.getItem("workoutHistory") || "[]");
+    let savedCount = 0;
+
+    rows.forEach(row => {
+      const exSelect = row.querySelector('.ex-select');
+      const sInput = row.querySelector('.s-input');
+      const wInput = row.querySelector('.w-input');
+      const rInput = row.querySelector('.r-input');
+
+      if (exSelect && wInput && wInput.value !== "") {
+        const exName = exSelect.value;
+        const setsVal = sInput ? parseInt(sInput.value) || 0 : 0;
+        const weightVal = parseFloat(wInput.value);
+        const repsVal = rInput ? parseInt(rInput.value) || 0 : 0;
+
+        // Remove duplicados do mesmo exercício na mesma data antes de adicionar
+        history = history.filter(h => !( (h.rawDate === dateRaw || h.date === dateFormatted) && h.exercise === exName ));
+
+        history.push({
+          date: dateFormatted,
+          rawDate: dateRaw,
+          exercise: exName,
+          sets: setsVal,
+          weight: weightVal,
+          reps: repsVal
+        });
+        savedCount++;
+      }
+    });
+
+    if (savedCount > 0) {
+      localStorage.setItem("workoutHistory", JSON.stringify(history));
+      alert(`✅ Cargas salvas para o dia ${dateFormatted} (${form.dataset.day})!`);
+      updateChart();
+      searchHistoryByDate();
+    } else {
+      alert("⚠️ Preencha a carga de ao menos um exercício.");
+    }
+  }
+
+  function initChart() {
+    const ctx = document.getElementById('evolutionChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Carga Utilizada (kg)',
+          data: [],
+          borderColor: '#1565C0',
+          backgroundColor: 'rgba(21, 101, 192, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 5,
+          pointBackgroundColor: '#0D47A1'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: false, title: { display: true, text: 'Carga (kg)' } },
+          x: { title: { display: true, text: 'Data do Treino Realizado' } }
+        }
+      }
+    });
+    updateChart();
+  }
+
+  function updateChart() {
+    const selectedEx = document.getElementById("exerciseSelect").value;
+    const history = JSON.parse(localStorage.getItem("workoutHistory") || "[]");
+
+    let filtered = history.filter(h => h.exercise === selectedEx);
+
+    filtered.sort((a, b) => {
+      const dateA = a.rawDate || "1970-01-01";
+      const dateB = b.rawDate || "1970-01-01";
+      return dateA.localeCompare(dateB);
+    });
+
+    const labels = filtered.map(f => f.date);
+    const dataWeights = filtered.map(f => f.weight);
+
+    chartInstance.data.labels = labels.length ? labels : ["Sem dados"];
+    chartInstance.data.datasets[0].data = dataWeights.length ? dataWeights : [0];
+    chartInstance.data.datasets[0].label = `Progressão: ${selectedEx} (kg)`;
+    chartInstance.update();
+  }
+
+  function exportData() {
+    const history = localStorage.getItem("workoutHistory") || "[]";
+    const custom = localStorage.getItem("customExercises") || "[]";
+    const cardio = localStorage.getItem("cardioHistory") || "[]";
+    const backupData = JSON.stringify({ 
+      history: JSON.parse(history), 
+      customExercises: JSON.parse(custom),
+      cardioHistory: JSON.parse(cardio)
+    });
+
+    const blob = new Blob([backupData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `backup_treino_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  }
+
+  function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+
+        if (data.history) {
+          localStorage.setItem("workoutHistory", JSON.stringify(data.history));
+        }
+        if (data.customExercises) {
+          localStorage.setItem("customExercises", JSON.stringify(data.customExercises));
+        }
+        if (data.cardioHistory) {
+          localStorage.setItem("cardioHistory", JSON.stringify(data.cardioHistory));
+        }
+
+        alert("✅ Dados restaurados com sucesso!");
+        buildTables();
+        renderCardioHistory();
+        refreshChartDropdown();
+        updateChart();
+        searchHistoryByDate();
+      } catch (err) {
+        alert("⚠️ Erro ao ler o arquivo de backup. Verifique se o arquivo .json é válido.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function clearData() {
+    if (confirm("Tem certeza que deseja apagar todo o histórico de cargas e cardios?")) {
+      localStorage.removeItem("workoutHistory");
+      localStorage.removeItem("customExercises");
+      localStorage.removeItem("cardioHistory");
+      alert("Dados zerados!");
+      buildTables();
+      renderCardioHistory();
+      refreshChartDropdown();
+      updateChart();
+      searchHistoryByDate();
+    }
+  }
+</script>
+</body>
+</html>
